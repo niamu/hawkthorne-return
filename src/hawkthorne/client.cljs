@@ -1,6 +1,7 @@
 (ns hawkthorne.client
   (:require [hawkthorne.websocket :as websocket]
             [hawkthorne.tiled :as tiled]
+            [hawkthorne.player :as player]
             [hawkthorne.router :as router]
             [hawkthorne.state :as state]
             [play-cljs.core :as p]
@@ -15,25 +16,23 @@
   (reify p/Screen
     (on-show [this]
       (p/load-tiled-map game "hallway")
-      (events/listen js/window "keydown"
-                     (fn [event]
-                       (when (= (.-keyCode event) 37)
-                         (websocket/send :move :left)))))
+      #_(websocket/send :keys (p/get-pressed-keys game))
+      #_(events/listen js/window "keydown"
+                       (fn [event]
+                         (when (= (.-keyCode event) 37)
+                           (websocket/send :move :left)))))
     (on-hide [this])
     (on-render [this]
-      #_(prn (p/get-pressed-keys game))
       (p/render game
-                [#_[:stroke {}
-                    [:fill {:color "lightblue"}
-                     [:rect {:x 0 :y 0
-                             :width (.-innerWidth js/window)
-                             :height (.-innerHeight js/window)}]]]
-                 [:tiled-map {:name "hallway" :x 0}]
-                 [:fill {:color "black"}
-                  [:text {:value (pr-str @state/state)
-                          :x 20
-                          :y 30
-                          :size 16 :font "Georgia" :style :italic}]]]))))
+                [[:tiled-map {:name "hallway" :x 0}]
+                 (mapv #(player/player (merge player/init-state %))
+                       (vals (:players @state/state)))
+                 #_[:fill {:color "black"}
+                    [:text {:value (pr-str @state/state)
+                            :x 20
+                            :y 30
+                            :size 14 :font "Georgia" :style :italic}]]])
+      (websocket/send :keys (p/get-pressed-keys game)))))
 
 (defn mount-route
   "Mount the React DOM Root corresponding with the current path"

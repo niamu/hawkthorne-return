@@ -13,3 +13,5 @@
   (server/start))
 
 (defn restart [] (stop) (start))
+
+(defn -main [] (start))

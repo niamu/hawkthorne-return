@@ -37,6 +37,5 @@
 (defui Game
   Object
   (render [this]
-    (-> [:div
-         [:h1 "Hello world"]]
+    (-> [:div]
         util/dom)))

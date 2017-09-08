@@ -11,26 +11,6 @@
                 :me nil}
                #?(:clj {:channels {}}))))
 
-(defn add-remove-players
-  [players]
-  (swap! state assoc :players players))
-
-(defn move-player
-  [player command]
-  (condp = command
-    :left (swap! state update-in [:players player :x] dec)
-    :right (swap! state update-in [:players player :x] inc)
-    :down (swap! state update-in [:players player :y] inc)
-    :up (swap! state update-in [:players player :y] dec)))
-
-(defn handle-message
-  [m]
-  (condp #(contains? %2 %1) m
-    :move (move-player (:uuid m) (:move m))
-    :players (add-remove-players (:players m))
-    :uuid (swap! state assoc :me (:uuid m))
-    :no-match))
-
 #?(:cljs
    (defn transit-post
      "Send queries to remote and await process returned data with db/import"

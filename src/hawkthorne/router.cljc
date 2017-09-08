@@ -2,6 +2,7 @@
   (:require [hawkthorne.routes :as routes]
             [hawkthorne.page :as page]
             [hawkthorne.state :as state]
+            [hawkthorne.websocket :as websocket]
             [hawkthorne.style :as style]
             [domkm.silk :as silk]
             [#?(:clj clojure.edn :cljs cljs.reader) :as edn]
@@ -33,37 +34,9 @@
      (fn [request]
        (http/with-channel request channel
          (when-let [player (hash (:async-channel request))]
-           ;; on open
-           (swap! state/state assoc-in [:channels channel] player)
-           (swap! state/state assoc-in [:players player] {:x 0 :y 0})
-           (http/send! channel (pr-str {:uuid player}))
-           (doseq [[c p] (:channels @state/state)]
-             (http/send! c (pr-str {:players (:players @state/state)})))
-
-           (http/on-close channel
-                          (fn [status]
-                            (swap! state/state
-                                   update-in [:channels] dissoc channel)
-                            (swap! state/state
-                                   update-in [:players] dissoc player)
-                            (doseq [[c p] (:channels @state/state)]
-                              (http/send! c
-                                          (-> {:players (:players @state/state)}
-                                              pr-str)))))
-
-           (http/on-receive channel
-                            (fn [data]
-                              (let [sender (get-in @state/state
-                                                   [:channels channel])
-                                    cmd (merge {:uuid sender}
-                                               (edn/read-string data))]
-                                (state/handle-message cmd)
-                                (doseq [[c p] (:channels @state/state)]
-                                  (http/send!
-                                   c
-                                   (pr-str
-                                    {:players
-                                     (:players @state/state)})))))))))))
+           (websocket/open channel player)
+           (websocket/on-close channel player)
+           (websocket/on-receive channel player))))))
 
 #?(:clj
    (defmethod response :css
@@ -88,10 +61,6 @@
 #?(:clj
    (def route-handler
      (serve/ring-handler routes/routes route->response)))
-
-(defn name->path
-  [route]
-  (silk/depart routes/routes route))
 
 #?(:cljs
    (defn path->name
