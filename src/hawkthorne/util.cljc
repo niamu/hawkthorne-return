@@ -8,6 +8,9 @@
                        [sablono.util :refer [element?]]]
                 :cljs [[sablono.core :as html :refer-macros [html]]])))
 
+(def game-width 576)
+(def game-height 324)
+
 #?(:clj
    (defn- compile-attrs
      "Conform attributes to a format expected by Om DOM utils"

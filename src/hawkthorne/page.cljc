@@ -24,14 +24,12 @@
      (h/html5
       [:head
        [:title "Hawkthorne"]
-       [:meta {:name "viewport"
-               :content "width=device-width,initial-scale=1"}]
+       [:meta {:name "viewport" :content "width=device-width,initial-scale=1"}]
        (h/include-css "/css/screen.css")]
       [:body
        [:div#app (render-to-str react-root)]
        [:div#game
-        ;; TODO: Some message for users with JS disabled
-        ]
+        [:noscript "JavaScript is necessary to play this game"]]
        (h/include-js "/js/hawkthorne.js")])))
 
 (defui Game

@@ -1,4 +1,5 @@
 (ns hawkthorne.websocket
+  (:refer-clojure :exclude [send])
   (:require [hawkthorne.state :as state]
             [hawkthorne.player :as player]
             [hawkthorne.routes :as routes]
@@ -8,47 +9,13 @@
             [#?(:clj clojure.edn :cljs cljs.reader) :as edn])
   #?(:cljs (:require-macros [cljs.core.async.macros :refer [go]])))
 
-(defn handle-message
+(defn receive
   [m]
   (condp #(contains? %2 %1) m
     :keys (player/move (:uuid m) (:keys m))
     :players (swap! state/state assoc :players (:players m))
     :uuid (swap! state/state assoc :me (:uuid m))
     :no-match))
-
-#?(:clj
-   (defn open
-     [channel player]
-     (swap! state/state assoc-in [:channels channel] player)
-     (player/join player)
-     (http/send! channel (pr-str {:uuid player}))
-     (doseq [[c p] (:channels @state/state)]
-       (let [players {:players (:players @state/state)}]
-         (http/send! c (pr-str players))))))
-
-#?(:clj
-   (defn on-close
-     [channel player]
-     (http/on-close channel
-                    (fn [_]
-                      (swap! state/state update-in [:channels] dissoc channel)
-                      (player/leave player)
-                      (doseq [[c p] (:channels @state/state)]
-                        (let [players {:players (:players @state/state)}]
-                          (http/send! c (pr-str players))))))))
-
-#?(:clj
-   (defn on-receive
-     [channel player]
-     (http/on-receive channel
-                      (fn [data]
-                        (let [sender (get-in @state/state [:channels channel])
-                              message (merge {:uuid sender}
-                                             (edn/read-string data))
-                              _ (handle-message message)
-                              players {:players (:players @state/state)}]
-                          (doseq [[c p] (:channels @state/state)]
-                            (http/send! c (pr-str players))))))))
 
 #?(:cljs
    (defn connect!
@@ -73,7 +40,7 @@
                (recur (<! out)))))
        (go (loop [msg (<! in)]
              (when msg
-               (handle-message msg)
+               (receive msg)
                (recur (<! in)))))
        {:in in :out out})))
 
@@ -82,8 +49,43 @@
      (connect! (str "ws://" (.. js/window -location -host)
                     (silk/depart routes/routes :websocket)))))
 
-#?(:cljs
-   (defn send
-     [method value]
-     (go (<! (timeout 50))
-         (>! (:out websocket) {method value}))))
+(defn send
+  #?(:clj [channel value]
+     :cljs [method value])
+  #?(:clj (http/send! channel value)
+     :cljs (go (<! (timeout 50))
+               (>! (:out websocket) {method value}))))
+
+#?(:clj
+   (defn open
+     [channel player]
+     (swap! state/state assoc-in [:channels channel] player)
+     (player/join player)
+     (http/send! channel (pr-str {:uuid player}))
+     (doseq [[c p] (:channels @state/state)]
+       (let [players {:players (:players @state/state)}]
+         (send c (pr-str players))))))
+
+#?(:clj
+   (defn on-close
+     [channel player]
+     (http/on-close channel
+                    (fn [_]
+                      (swap! state/state update-in [:channels] dissoc channel)
+                      (player/leave player)
+                      (doseq [[c p] (:channels @state/state)]
+                        (let [players {:players (:players @state/state)}]
+                          (send c (pr-str players))))))))
+
+#?(:clj
+   (defn on-receive
+     [channel player]
+     (http/on-receive channel
+                      (fn [data]
+                        (let [sender (get-in @state/state [:channels channel])
+                              message (merge {:uuid sender}
+                                             (edn/read-string data))
+                              _ (receive message)
+                              players {:players (:players @state/state)}]
+                          (doseq [[c p] (:channels @state/state)]
+                            (send c (pr-str players))))))))

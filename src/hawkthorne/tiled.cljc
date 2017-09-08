@@ -7,6 +7,11 @@
 
 (def maps (maps*))
 
+(defn width
+  [map-name]
+  (let [{:keys [width tilewidth]} (maps map-name)]
+    (* width tilewidth)))
+
 ;; TODO: Function that calculates collision layer index
 #_(->> (maps "hallway")
        :layers
@@ -16,7 +21,9 @@
        (remove nil?)
        first)
 
-#?(:cljs (aset js/window "TileMaps" (clj->js {})))
-
-#?(:cljs (doseq [[map-name map-data] maps]
-           (aset js/window "TileMaps" (clj->js map-name) (clj->js map-data))))
+#?(:cljs
+   (defn load-maps
+     []
+     (aset js/window "TileMaps" (clj->js {}))
+     (doseq [[map-name map-data] maps]
+       (aset js/window "TileMaps" (clj->js map-name) (clj->js map-data)))))

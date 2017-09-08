@@ -8,6 +8,7 @@
 
 (defonce state
   (atom (merge {:players {}
+                :camera {:x 0 :y 0}
                 :me nil}
                #?(:clj {:channels {}}))))
 

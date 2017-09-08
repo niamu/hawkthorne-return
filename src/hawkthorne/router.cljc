@@ -66,3 +66,9 @@
    (defn path->name
      [url]
      (:domkm.silk/name (silk/arrive routes/routes url))))
+
+#?(:cljs
+   (defn mount-route
+     "Mount the React DOM Root corresponding with the current path"
+     [path]
+     (-> path path->name route->response)))

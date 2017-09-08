@@ -1,5 +1,7 @@
 (ns hawkthorne.player
   (:require [hawkthorne.state :as state]
+            [hawkthorne.tiled :as tiled]
+            [hawkthorne.util :as util]
             [clojure.string :as string]
             [#?(:clj clojure.edn :cljs cljs.reader) :as edn]))
 
@@ -147,7 +149,8 @@
    :state :idle
    :width 48
    :height 48
-   :character {:name "abed" :costume "base"}})
+   :character {:name "abed" :costume "base"}
+   :map "hallway"})
 
 (defn move
   [player keys]
@@ -162,7 +165,15 @@
              [37] (assoc p :x (dec x))
              [40] (assoc p :y (inc y))
              [38] (assoc p :y (dec y))
-             p))))
+             p)))
+  (swap! state/state update-in [:players player]
+         (fn [{:keys [x y width map] :as p}]
+           (assoc p
+                  :x (cond
+                       (neg? x) 0
+                       (> (+ x width) (tiled/width map))
+                       (- (tiled/width map) width)
+                       :else x)))))
 
 (defn join
   [player]
@@ -175,7 +186,16 @@
   [player]
   (swap! state/state update-in [:players] dissoc player))
 
-(defn player
-  [{:keys [x y velocity direction state width height character] :as player}]
-  [:div {:x x :y y :width width :height height}
+(defn draw
+  [me? camera {:keys [x y map width height] :as player}]
+  [:div
+   {:x (if me?
+         (condp = (:bound? camera)
+           :left x
+           :right (- x (:x camera))
+           (- (/ util/game-width 2) (/ width 2)))
+         (- x (:x camera)))
+    :y y
+    :width width
+    :height height}
    (sprite player)])
