@@ -24,14 +24,17 @@
                     {:name (:map (players me))
                      :x (:x camera)
                      :y (:y camera)}]
-                   (mapv (fn [[id p]] (player/draw (= id me) camera p))
+                   (mapv (fn [[id p]]
+                           (player/draw (= id me) camera p))
                          players)])
         (camera/move (players me)))
-      (websocket/send :keys (p/get-pressed-keys game)))))
+      (swap! state/state assoc :keys (p/get-pressed-keys game)))))
 
 (router/mount-route (.. js/window -location -pathname))
 
 (tiled/load-maps)
+
+(websocket/tick-start)
 
 (doto game
   (p/start)

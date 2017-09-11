@@ -1,13 +1,15 @@
 (ns hawkthorne.websocket
   (:refer-clojure :exclude [send])
-  (:require [hawkthorne.state :as state]
-            [hawkthorne.player :as player]
+  (:require [hawkthorne.player :as player]
             [hawkthorne.routes :as routes]
+            [hawkthorne.state :as state]
+            [hawkthorne.util :as util]
             #?(:clj [org.httpkit.server :as http])
             [domkm.silk :as silk]
-            #?(:cljs [cljs.core.async :refer [>! <! put! chan timeout]])
+            [#?(:clj clojure.core.async :cljs cljs.core.async) :as async
+             :refer [#?(:clj go-loop)]]
             [#?(:clj clojure.edn :cljs cljs.reader) :as edn])
-  #?(:cljs (:require-macros [cljs.core.async.macros :refer [go]])))
+  #?(:cljs (:require-macros [cljs.core.async.macros :refer [go go-loop]])))
 
 (defn receive
   [m]
@@ -24,8 +26,8 @@
       out - data being sent to the server"
      [uri]
      (let [ws (js/WebSocket. uri)
-           in (chan)
-           out (chan)]
+           in (async/chan)
+           out (async/chan)]
        (set! (.-onopen ws)
              (fn [e] (swap! state/state #(assoc % :connected true))))
        (set! (.-onclose ws)
@@ -33,15 +35,15 @@
        (set! (.-onerror ws)
              (fn [e] (swap! state/state #(assoc % :connected false))))
        (set! (.-onmessage ws)
-             (fn [e] (put! in (edn/read-string (.-data e)))))
-       (go (loop [msg (<! out)]
+             (fn [e] (async/put! in (edn/read-string (.-data e)))))
+       (go (loop [msg (async/<! out)]
              (when msg
                (.send ws msg)
-               (recur (<! out)))))
-       (go (loop [msg (<! in)]
+               (recur (async/<! out)))))
+       (go (loop [msg (async/<! in)]
              (when msg
                (receive msg)
-               (recur (<! in)))))
+               (recur (async/<! in)))))
        {:in in :out out})))
 
 #?(:cljs
@@ -53,18 +55,15 @@
   #?(:clj [channel value]
      :cljs [method value])
   #?(:clj (http/send! channel value)
-     :cljs (go (<! (timeout 50))
-               (>! (:out websocket) {method value}))))
+     :cljs (go (async/<! (async/timeout 50))
+               (async/>! (:out websocket) {method value}))))
 
 #?(:clj
    (defn open
      [channel player]
      (swap! state/state assoc-in [:channels channel] player)
      (player/join player)
-     (http/send! channel (pr-str {:uuid player}))
-     (doseq [[c p] (:channels @state/state)]
-       (let [players {:players (:players @state/state)}]
-         (send c (pr-str players))))))
+     (http/send! channel (pr-str {:uuid player}))))
 
 #?(:clj
    (defn on-close
@@ -72,10 +71,7 @@
      (http/on-close channel
                     (fn [_]
                       (swap! state/state update-in [:channels] dissoc channel)
-                      (player/leave player)
-                      (doseq [[c p] (:channels @state/state)]
-                        (let [players {:players (:players @state/state)}]
-                          (send c (pr-str players))))))))
+                      (player/leave player)))))
 
 #?(:clj
    (defn on-receive
@@ -84,8 +80,46 @@
                       (fn [data]
                         (let [sender (get-in @state/state [:channels channel])
                               message (merge {:uuid sender}
-                                             (edn/read-string data))
-                              _ (receive message)
-                              players {:players (:players @state/state)}]
-                          (doseq [[c p] (:channels @state/state)]
-                            (send c (pr-str players))))))))
+                                             (edn/read-string data))]
+                          (receive message))))))
+
+#?(:clj
+   (defn send-world-state
+     "Send the current state of all players to each client"
+     []
+     (doseq [[channel player] (:channels @state/state)]
+       (send channel (pr-str {:players (:players @state/state)})))))
+
+#?(:cljs
+   (defn send-keys
+     "Send the keys pressed on the client to the server"
+     []
+     (send :keys (:keys @state/state))))
+
+(defn tick
+  "Tickrate for the client command rate and server communication rate"
+  [f]
+  (let [start (async/chan)
+        stop (async/chan)]
+    (go-loop [running? true]
+      (let [t (async/timeout util/tickrate)
+            [_ ch] (async/alts! [stop t start])]
+        (when running? (f))
+        (condp = ch
+          stop (recur false)
+          t (recur running?)
+          start (recur true))))
+    [start stop]))
+
+(defn tick-start
+  []
+  (if-let [[start _] (:tick @state/state)]
+    (async/put! start true)
+    (swap! state/state assoc :tick
+           (tick #?(:clj send-world-state
+                    :cljs send-keys)))))
+
+(defn tick-stop
+  []
+  (when-let [[_ stop] (:tick @state/state)]
+    (async/put! stop true)))

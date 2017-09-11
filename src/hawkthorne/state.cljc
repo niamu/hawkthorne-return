@@ -7,9 +7,10 @@
   #?(:cljs (:import [goog.net XhrIo])))
 
 (defonce state
-  (atom (merge {:players {}
+  (atom (merge {:me nil
+                :players {}
                 :camera {:x 0 :y 0}
-                :me nil}
+                :tick nil}
                #?(:clj {:channels {}}))))
 
 #?(:cljs

@@ -10,6 +10,7 @@
 
 (def game-width 576)
 (def game-height 324)
+(def tickrate 33)
 
 #?(:clj
    (defn- compile-attrs

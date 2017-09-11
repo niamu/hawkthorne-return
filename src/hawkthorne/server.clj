@@ -3,6 +3,7 @@
   (:gen-class)
   (:require [hawkthorne.middleware :as middleware]
             [hawkthorne.router :as router]
+            [hawkthorne.websocket :as websocket]
             [org.httpkit.server :as http]
             [ring.middleware.not-modified :as not-modified]
             [ring.middleware.defaults :as defaults]))
@@ -24,6 +25,7 @@
   (when-not (nil? @server)
     (@server :timeout 100)
     (reset! server nil))
+  (websocket/tick-stop)
   (println "Stopped."))
 
 (defn start
@@ -31,6 +33,7 @@
   []
   (when (nil? @server)
     (reset! server (http/run-server #'app {:port 8080})))
+  (websocket/tick-start)
   (println "Started."))
 
 (defn restart [] (stop) (start))
