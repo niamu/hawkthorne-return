@@ -15,7 +15,7 @@
   #?(:clj (fn [request]
             {:status (or status 200)
              :headers (or headers {"Content-Type" "text/html"})
-             :body (page/wrap (page/react-root body {:ring request}))})
+             :body (page/wrap (page/react-root body))})
      :cljs (page/react-root body)))
 
 (defmulti response identity)
@@ -26,7 +26,7 @@
      (fn [request]
        {:status 200
         :headers {"Content-Type" "application/transit+json"}
-        :body (state/parser {:state (atom {})} (:transit-params request))})))
+        :body (state/parser {:state state/state} (:transit-params request))})))
 
 #?(:clj
    (defmethod response :websocket

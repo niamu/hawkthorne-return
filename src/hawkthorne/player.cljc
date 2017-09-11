@@ -3,7 +3,27 @@
             [hawkthorne.tiled :as tiled]
             [hawkthorne.util :as util]
             [clojure.string :as string]
-            [#?(:clj clojure.edn :cljs cljs.reader) :as edn]))
+            #?(:clj [clojure.java.io :as io])
+            [#?(:clj clojure.edn :cljs cljs.reader) :as edn])
+  #?(:cljs (:require-macros
+            [hawkthorne.player :refer [characters*]])))
+
+#?(:clj
+   (defmacro characters*
+     []
+     (as-> (filter (fn [file]
+                     (string/ends-with? (.getPath file) ".png"))
+                   (-> (io/file "resources/public/images/characters")
+                       file-seq)) x
+       (reduce (fn [accl file]
+                 (let [file-parts (drop 4 (string/split (.getPath file) #"/"))]
+                   (update-in accl (map keyword (drop-last file-parts))
+                              conj (-> (last file-parts)
+                                       (string/replace ".png" "") keyword))))
+               {} x)
+       (reduce #(assoc %1 (key %2) (into [] (val %2))) {} x))))
+
+(def characters (characters*))
 
 (def sheet
   {:acquire          {:left   [:once [[7 3]] 1]
@@ -123,17 +143,19 @@
 (defn sprite
   [{:keys [direction state width height character] :as player}]
   (let [[cycle sprites duration] (get-in sheet [state direction] (sheet state))
-        image-path (fn [{:keys [name costume]}]
-                     (str "/images/characters/" name "/" costume ".png"))]
+        image-path (fn [character]
+                     (str "/images/characters/"
+                          (name (:name character)) "/"
+                          (name (:costume character)) ".png"))]
     (if (> (count sprites) 1)
-      [:animation {:duration duration}
-       (map (fn [[x y]]
-              [:image {:name (image-path character)
-                       :swidth width
-                       :sheight height
-                       :sx (* (dec x) width)
-                       :sy (* (dec y) width)}])
-            sprites)]
+      (->> (map (fn [[x y]]
+                  [:image {:name (image-path character)
+                           :swidth width
+                           :sheight height
+                           :sx (* (dec x) width)
+                           :sy (* (dec y) width)}])
+                sprites)
+           (apply conj [:animation {:duration (* duration 1000)}]))
       (let [[x y] (first sprites)]
         [:image {:name (image-path character)
                  :swidth width
@@ -142,45 +164,108 @@
                  :sy (* (dec y) width)}]))))
 
 (def init-state
-  {:x 0
-   :y 0
+  {:x 0 :y 0
    :velocity {:x 0 :y 0}
    :direction :right
    :state :idle
    :width 48
    :height 48
-   :character {:name "abed" :costume "base"}
+   :character {:name :abed :costume :base}
    :map "hallway"})
 
+(defn velocity-x
+  [{:keys [direction velocity] :as player} coasting?]
+  (let [moving-right? (= direction :right)]
+    (if coasting?
+      ((if moving-right? max min)
+       ((if moving-right? - +) (:x velocity)
+        (* util/friction (/ util/tickrate 1000)))
+       0)
+      (if ((if moving-right? < >) (:x velocity)
+           ((if moving-right? + -) util/max-x-velocity))
+        ((if moving-right? + -) (:x velocity) (* util/acceleration
+                                                 (/ util/tickrate 1000)))
+        ((if moving-right? + -) util/max-x-velocity)))))
+
+(defn velocity-y
+  [{:keys [velocity] :as p}]
+  (if (< (:y velocity) util/max-y-velocity)
+    (+ (:y velocity) (* util/gravity (/ util/tickrate 1000)))
+    util/max-y-velocity))
+
+(defn pressing?
+  [key-name]
+  (let [keys-pressed (reduce (fn [accl k] (conj accl (util/keymap k)))
+                             #{}
+                             (:keys-pressed @state/state))]
+    (contains? keys-pressed key-name)))
+
+(defn prevent-move
+  [player-id]
+  (swap! state/state update-in [:players player-id]
+         (fn [{:keys [x y velocity state width height map] :as player}]
+           (let [[collision-x collision-y]
+                 (tiled/touching-tile? map
+                                       (tiled/collision-index (tiled/maps map))
+                                       x y width height)]
+             (assoc player
+                    :x (cond
+                         (neg? x) 0
+                         (> (+ x width) (tiled/width map))
+                         (- (tiled/width map) width)
+                         :else x)
+                    :y (if collision-y (- collision-y height) y)
+                    :on-ground? (boolean collision-y)
+                    :velocity {:x (cond
+                                    (neg? x) 0
+                                    (> (+ x width) (tiled/width map)) 0
+                                    :else (:x velocity))
+                               :y (cond
+                                    (or (not (boolean collision-y))
+                                        (pressing? :space)) (:y velocity)
+                                    collision-y 0
+                                    :else (:y velocity))})))))
+
 (defn move
-  [player keys]
-  (swap! state/state update-in [:players player]
-         (fn [{:keys [x y] :as p}]
-           (condp #(every? %2 %1) keys
-             [39 40] (assoc p :x (inc x) :y (inc y))
-             [39 38] (assoc p :x (inc x) :y (dec y))
-             [37 40] (assoc p :x (dec x) :y (inc y))
-             [37 38] (assoc p :x (dec x) :y (dec y))
-             [39] (assoc p :x (inc x))
-             [37] (assoc p :x (dec x))
-             [40] (assoc p :y (inc y))
-             [38] (assoc p :y (dec y))
-             p)))
-  (swap! state/state update-in [:players player]
-         (fn [{:keys [x y width map] :as p}]
-           (assoc p
-                  :x (cond
-                       (neg? x) 0
-                       (> (+ x width) (tiled/width map))
-                       (- (tiled/width map) width)
-                       :else x)))))
+  [player-id keys]
+  (swap! state/state assoc :keys-pressed keys)
+  (swap! state/state update-in [:players player-id]
+         (fn [{:keys [x y state direction on-ground? velocity] :as player}]
+           (assoc player
+                  :state (cond
+                           (not on-ground?) :jump
+                           (pressing? :down) :crouch
+                           (or (pressing? :left)
+                               (pressing? :right)) :walk
+                           :else :idle)
+                  :direction (cond
+                               (pressing? :right) :right
+                               (pressing? :left) :left
+                               :else direction)
+                  :x (+ x (:x velocity))
+                  :y (+ y (:y velocity))
+                  :velocity
+                  {:x (velocity-x player
+                                  (or (and (pressing? :down)
+                                           on-ground?)
+                                      (and (not (pressing? :left))
+                                           (not (pressing? :right)))))
+                   :y (if (and (pressing? :space)
+                               on-ground?)
+                        (- (/ (:height player) 2.5))
+                        (velocity-y player))})))
+  (prevent-move player-id))
 
 (defn join
   [player]
-  (swap! state/state assoc-in
-         [:players player]
-         (assoc init-state :x
-                (* (:width init-state) (count (:players @state/state))))))
+  (let [rand-character (rand-nth (keys characters))
+        rand-costume (rand-nth (characters rand-character))]
+    (swap! state/state assoc-in
+           [:players player]
+           (assoc init-state
+                  :x (* (:width init-state) (count (:players @state/state)))
+                  :character {:name rand-character
+                              :costume rand-costume}))))
 
 (defn leave
   [player]

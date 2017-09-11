@@ -14,19 +14,20 @@
 
 (def main-screen
   (reify p/Screen
-    (on-show [this])
+    (on-show [this]
+      (doto (.getContext (p/get-canvas game) "2d")
+        (aset "imageSmoothingEnabled" false)
+        (aset "webkitImageSmoothingEnabled" false)
+        (aset "mozImageSmoothingEnabled" false)))
     (on-hide [this])
     (on-render [this]
       (when-let [{:keys [players me camera]}
                  (and (not-empty (:players @state/state)) @state/state)]
         (p/render game
-                  [[:tiled-map
-                    {:name (:map (players me))
-                     :x (:x camera)
-                     :y (:y camera)}]
-                   (mapv (fn [[id p]]
-                           (player/draw (= id me) camera p))
-                         players)])
+                  [[:tiled-map {:name (:map (players me))
+                                :x (:x camera)
+                                :y (:y camera)}]
+                   (mapv (fn [[i p]] (player/draw (= i me) camera p)) players)])
         (camera/move (players me)))
       (swap! state/state assoc :keys (p/get-pressed-keys game)))))
 

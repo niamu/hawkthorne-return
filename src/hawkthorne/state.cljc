@@ -9,6 +9,7 @@
 (defonce state
   (atom (merge {:me nil
                 :players {}
+                :keys-pressed #{}
                 :camera {:x 0 :y 0}
                 :tick nil}
                #?(:clj {:channels {}}))))
@@ -21,9 +22,9 @@
        (.send XhrIo url
               (fn [e]
                 (this-as this
-                  ;; TODO: Implement client-side state management
-                  (prn (t/read (t/reader :json)
-                               (.getResponseText this)))))
+                  (swap! state assoc :players
+                         (:players (t/read (t/reader :json)
+                                           (.getResponseText this))))))
               "POST" (t/write (t/writer :json) remote)
               #js {"Content-Type" "application/transit+json"}))))
 
@@ -33,13 +34,30 @@
   [{:keys [state query]} key params]
   {:value "default"})
 
-(def parser
-  (om/parser {:read read}))
+(defmethod read :current/character
+  [{:keys [state query]} key params]
+  {:value #?(:clj {:name :abed :costume :base}
+             :cljs (get-in @state [:players (:me @state) :character]
+                           {:name :abed :costume :base}))})
 
-(defn reconciler
-  ([]
-   (reconciler {}))
-  ([session]
-   (om/reconciler (merge {:state (atom session)
-                          :parser parser}
-                         #?(:cljs {:send (transit-post "/api")})))))
+(defmulti mutate om/dispatch)
+
+(defmethod mutate 'current/character
+  [env key {:keys [character costume me]}]
+  {:remote true
+   :action (fn []
+             (swap! state update-in
+                    [:players me]
+                    assoc :character
+                    {:name character
+                     :costume costume})
+             #?(:clj (:players @state)))})
+
+(def parser
+  (om/parser {:read read
+              :mutate mutate}))
+
+(def reconciler
+  (om/reconciler (merge {:state state
+                         :parser parser}
+                        #?(:cljs {:send (transit-post "/api")}))))

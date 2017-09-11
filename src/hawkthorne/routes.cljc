@@ -3,6 +3,7 @@
 
 (def routes
   ^{:doc "Route definitions. Not all routes need to be shared to the client."}
-  (silk/routes (merge {:game [[]]
-                       :css [["css" "screen.css"]]
-                       :websocket [["websocket"]]})))
+  (silk/routes {:game [[]]
+                :api [["api"]]
+                :css [["css" "screen.css"]]
+                :websocket [["websocket"]]}))

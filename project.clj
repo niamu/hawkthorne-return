@@ -29,6 +29,7 @@
              :dev {:main hawkthorne.server-dev
                    :source-paths ["src" "dev"]
                    :dependencies [[figwheel-sidecar "0.5.13"]]
+                   :figwheel {:server-ip "0.0.0.0"}
                    :plugins [[lein-cljsbuild "1.1.7"]]}}
   :clean-targets ^{:protect false} ["target"
                                     "figwheel_server.log"
