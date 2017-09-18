@@ -171,7 +171,8 @@
    :width 48
    :height 48
    :character {:name :abed :costume :base}
-   :map "hallway"})
+   :map "hallway"
+   :keys-pressed #{}})
 
 (defn velocity-x
   [{:keys [direction velocity] :as player} coasting?]
@@ -194,10 +195,11 @@
     util/max-y-velocity))
 
 (defn pressing?
-  [key-name]
+  [player-id key-name]
   (let [keys-pressed (reduce (fn [accl k] (conj accl (util/keymap k)))
                              #{}
-                             (:keys-pressed @state/state))]
+                             (get-in @state/state
+                                     [:players player-id :keys-pressed]))]
     (contains? keys-pressed key-name)))
 
 (defn prevent-move
@@ -222,35 +224,35 @@
                                     :else (:x velocity))
                                :y (cond
                                     (or (not (boolean collision-y))
-                                        (pressing? :space)) (:y velocity)
+                                        (pressing? player-id :space))
+                                    (:y velocity)
                                     collision-y 0
                                     :else (:y velocity))})))))
 
 (defn move
-  [player-id keys]
-  (swap! state/state assoc :keys-pressed keys)
+  [player-id]
   (swap! state/state update-in [:players player-id]
          (fn [{:keys [x y state direction on-ground? velocity] :as player}]
            (assoc player
                   :state (cond
                            (not on-ground?) :jump
-                           (pressing? :down) :crouch
-                           (or (pressing? :left)
-                               (pressing? :right)) :walk
+                           (pressing? player-id :down) :crouch
+                           (or (pressing? player-id :left)
+                               (pressing? player-id :right)) :walk
                            :else :idle)
                   :direction (cond
-                               (pressing? :right) :right
-                               (pressing? :left) :left
+                               (pressing? player-id :right) :right
+                               (pressing? player-id :left) :left
                                :else direction)
                   :x (+ x (:x velocity))
                   :y (+ y (:y velocity))
                   :velocity
                   {:x (velocity-x player
-                                  (or (and (pressing? :down)
+                                  (or (and (pressing? player-id :down)
                                            on-ground?)
-                                      (and (not (pressing? :left))
-                                           (not (pressing? :right)))))
-                   :y (if (and (pressing? :space)
+                                      (and (not (pressing? player-id :left))
+                                           (not (pressing? player-id :right)))))
+                   :y (if (and (pressing? player-id :space)
                                on-ground?)
                         (- (/ (:height player) 2.5))
                         (velocity-y player))})))

@@ -14,7 +14,8 @@
 (defn receive
   [m]
   (condp #(contains? %2 %1) m
-    :keys (player/move (:uuid m) (:keys m))
+    :keys (swap! state/state assoc-in
+                 [:players (:uuid m) :keys-pressed] (:keys m))
     :players (swap! state/state assoc :players (:players m))
     :uuid (swap! state/state assoc :me (:uuid m))
     :no-match))
@@ -87,6 +88,8 @@
    (defn send-world-state
      "Send the current state of all players to each client"
      []
+     (doseq [[player-id _] (:players @state/state)]
+       (player/move player-id))
      (doseq [[channel player] (:channels @state/state)]
        (send channel (pr-str {:players (:players @state/state)})))))
 
