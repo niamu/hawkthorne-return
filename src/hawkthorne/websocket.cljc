@@ -91,7 +91,14 @@
      (doseq [[player-id _] (:players @state/state)]
        (player/move player-id))
      (doseq [[channel player] (:channels @state/state)]
-       (send channel (pr-str {:players (:players @state/state)})))))
+       (send channel (pr-str {:players
+                              (->> (:players @state/state)
+                                   (filter (fn [p]
+                                             (= (-> p val :map)
+                                                (get-in @state/state
+                                                        [:players player
+                                                         :map]))))
+                                   (into {}))})))))
 
 #?(:cljs
    (defn send-keys

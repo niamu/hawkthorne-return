@@ -35,7 +35,17 @@
                                     "figwheel_server.log"
                                     "resources/public/js"]
   :cljsbuild {:builds
-              [{:id "dev"
+              [{:id "prod"
+                :source-paths ["src"]
+                :compiler {:main hawkthorne.client
+                           :asset-path "/js/out"
+                           :output-to "resources/public/js/hawkthorne.js"
+                           :output-dir "resources/public/js/out"
+                           :language-in :ecmascript5
+                           :language-out :ecmascript5
+                           :optimizations :simple
+                           :parallel-build true}}
+               {:id "dev"
                 :figwheel true
                 :source-paths ["src" "dev"]
                 :compiler {:main hawkthorne.client
@@ -45,12 +55,4 @@
                            :optimizations :none
                            :parallel-build true
                            :source-map true
-                           :source-map-timestamp true}}
-               {:id "prod"
-                :source-paths ["src"]
-                :compiler {:main hawkthorne.client
-                           :asset-path "/js/out"
-                           :output-to "resources/public/js/hawkthorne.js"
-                           :output-dir "resources/public/js/out"
-                           :optimizations :advanced
-                           :parallel-build true}}]})
+                           :source-map-timestamp true}}]})

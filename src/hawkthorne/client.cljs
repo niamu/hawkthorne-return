@@ -10,11 +10,14 @@
 
 (enable-console-print!)
 
+(tiled/load-maps)
+
 (defonce game (p/create-game util/game-width util/game-height "game"))
 
 (def main-screen
   (reify p/Screen
     (on-show [this]
+      ;; No smoothing when scaling up images for the pixelated aesthetic
       (doto (.getContext (p/get-canvas game) "2d")
         (aset "imageSmoothingEnabled" false)
         (aset "webkitImageSmoothingEnabled" false)
@@ -32,8 +35,6 @@
       (swap! state/state assoc :keys (p/get-pressed-keys game)))))
 
 (router/mount-route (.. js/window -location -pathname))
-
-(tiled/load-maps)
 
 (websocket/tick-start)
 

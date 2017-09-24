@@ -1,4 +1,4 @@
-(ns hawkthorne.tiled
+(ns ^:figwheel-always hawkthorne.tiled
   #?(:clj (:require [tmx2edn.core :as tmx2edn]))
   #?(:cljs (:require-macros
             [hawkthorne.tiled :refer [maps*]])))
