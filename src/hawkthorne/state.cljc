@@ -12,7 +12,8 @@
                 :keys-pressed #{}
                 :camera {:x 0 :y 0}
                 :tick nil}
-               #?(:clj {:channels {}}))))
+               #?(:clj {:debugging? false
+                        :channels {}}))))
 
 #?(:cljs
    (defn transit-post
@@ -22,9 +23,14 @@
        (.send XhrIo url
               (fn [e]
                 (this-as this
-                  (swap! state assoc :players
-                         (:players (t/read (t/reader :json)
-                                           (.getResponseText this))))))
+                  (let [data (t/read (t/reader :json)
+                                     (.getResponseText this))]
+                    (cond
+                      (contains? data :game/debugging?)
+                      (swap! state assoc :debugging? (:game/debugging? data))
+
+                      (contains? data :players)
+                      (swap! state assoc :players (:players data))))))
               "POST" (t/write (t/writer :json) remote)
               #js {"Content-Type" "application/transit+json"}))))
 
@@ -36,9 +42,13 @@
 
 (defmethod read :current/character
   [{:keys [state query]} key params]
-  {:value #?(:clj {:name :abed :costume :base}
-             :cljs (get-in @state [:players (:me @state) :character]
-                           {:name :abed :costume :base}))})
+  {:value (get-in @state [:players (:me @state) :character]
+                  {:name :troy :costume :base})})
+
+(defmethod read :game/debugging?
+  [{:keys [state query]} key params]
+  {:value (get @state :debugging? false)
+   :remote true})
 
 (defmulti mutate om/dispatch)
 
@@ -46,12 +56,17 @@
   [env key {:keys [character costume me]}]
   {:remote true
    :action (fn []
-             (swap! state update-in
-                    [:players me]
-                    assoc :character
-                    {:name character
-                     :costume costume})
+             (swap! state update-in [:players me]
+                    assoc :character {:name character
+                                      :costume costume})
              #?(:clj (:players @state)))})
+
+(defmethod mutate 'game/debugging?
+  [{:keys [state]} key _]
+  {:remote true
+   :action (fn []
+             (swap! state assoc :debugging? (not (:debugging? @state)))
+             #?(:clj (:debugging? @state)))})
 
 (def parser
   (om/parser {:read read

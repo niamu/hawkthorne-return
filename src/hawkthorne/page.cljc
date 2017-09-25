@@ -1,6 +1,6 @@
 (ns hawkthorne.page
   "Page assets shared by server and client."
-  (:require [hawkthorne.player :as player]
+  (:require [hawkthorne.characters :refer [characters]]
             [hawkthorne.state :as state]
             [hawkthorne.util :as util]
             [om.next :as om #?(:clj :refer :cljs :refer-macros) [defui]]
@@ -34,14 +34,14 @@
 (defui Game
   static om/IQuery
   (query [this]
-    [:current/character])
+    [:current/character :game/debugging?])
   Object
   (render [this]
-    (let [current-character (:current/character (om/props this))]
+    (let [{:keys [current/character game/debugging?]} (om/props this)]
       (-> [:div
            [:select
-            {:value (str (name (:name current-character)) "/"
-                         (name (:costume current-character)))
+            {:value (str (name (:name character)) "/"
+                         (name (:costume character)))
              :onChange
              #?(:clj nil
                 :cljs (fn [e]
@@ -52,13 +52,23 @@
                                    {:me ~(:me @state/state)
                                     :character ~(-> character keyword)
                                     :costume ~(-> costume keyword)})]))))}
-            (map (fn [[character costumes]]
-                   [:optgroup {:label (string/capitalize (name character))}
+            (map (fn [[char details]]
+                   [:optgroup
+                    {:label (string/capitalize (name char))}
                     (map (fn [costume]
                            [:option
-                            {:value (str (name character) "/" (name costume))}
-                            (str (string/capitalize (name character))
+                            {:value (str (name char) "/"
+                                         (name costume))}
+                            (str (string/capitalize (name char))
                                  " (" (string/capitalize (name costume)) ")")])
-                         (sort costumes))])
-                 (sort player/characters))]]
+                         (sort (keys (:costumes details))))])
+                 (sort characters))]
+           [:label
+            [:input {:type "checkbox"
+                     :checked debugging?
+                     :onChange
+                     #?(:clj nil
+                        :cljs (fn [e]
+                                (om/transact! this '[(game/debugging?)])))}]
+            [:span "Debugging"]]]
           util/dom))))

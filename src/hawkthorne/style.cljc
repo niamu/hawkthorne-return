@@ -4,7 +4,8 @@
             [garden.core :as garden]
             [garden.stylesheet :as stylesheet]
             [garden.selectors :as selectors]
-            [garden.units :as units])
+            [garden.units :as units]
+            [clojure.string :as string])
   #?(:cljs (:require-macros
             [hawkthorne.style :refer [defbreakpoint]])))
 
@@ -13,10 +14,6 @@
      [name media-params]
      `(defn ~name [& rules#]
         (stylesheet/at-media ~media-params [:& rules#]))))
-
-(defbreakpoint mobile-screen
-  {:screen true
-   :max-width (units/px 600)})
 
 (defbreakpoint non-mobile-screen
   {:screen true

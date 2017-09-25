@@ -1,29 +1,9 @@
 (ns hawkthorne.player
-  (:require [hawkthorne.state :as state]
+  (:require [hawkthorne.characters :refer [characters]]
+            [hawkthorne.state :as state]
+            [hawkthorne.style :as style]
             [hawkthorne.tiled :as tiled]
-            [hawkthorne.util :as util]
-            [clojure.string :as string]
-            #?(:clj [clojure.java.io :as io])
-            [#?(:clj clojure.edn :cljs cljs.reader) :as edn])
-  #?(:cljs (:require-macros
-            [hawkthorne.player :refer [characters*]])))
-
-#?(:clj
-   (defmacro characters*
-     []
-     (as-> (filter (fn [file]
-                     (string/ends-with? (.getPath file) ".png"))
-                   (-> (io/file "resources/public/images/characters")
-                       file-seq)) x
-       (reduce (fn [accl file]
-                 (let [file-parts (drop 4 (string/split (.getPath file) #"/"))]
-                   (update-in accl (map keyword (drop-last file-parts))
-                              conj (-> (last file-parts)
-                                       (string/replace ".png" "") keyword))))
-               {} x)
-       (reduce #(assoc %1 (key %2) (into [] (val %2))) {} x))))
-
-(def characters (characters*))
+            [hawkthorne.util :as util]))
 
 (def sheet
   {:acquire          {:left   [:once [[7 3]] 1]
@@ -142,7 +122,9 @@
 
 (defn sprite
   [{:keys [direction state width height character] :as player}]
-  (let [[cycle sprites duration] (get-in sheet [state direction] (sheet state))
+  (let [sheet (merge sheet
+                     (get-in characters [(:name character) :animations] {}))
+        [cycle sprites duration] (get-in sheet [state direction] (sheet state))
         image-path (fn [character]
                      (str "/images/characters/"
                           (name (:name character)) "/"
@@ -170,7 +152,7 @@
    :state :idle
    :width 48
    :height 48
-   :character {:name :abed :costume :base}
+   :character {:name :troy :costume :base}
    :map "hallway"
    :keys-pressed #{}})
 
@@ -261,7 +243,7 @@
 (defn join
   [player]
   (let [rand-character (rand-nth (keys characters))
-        rand-costume (rand-nth (characters rand-character))]
+        rand-costume (rand-nth (keys (:costumes (characters rand-character))))]
     (swap! state/state assoc-in
            [:players player]
            (assoc init-state
@@ -274,15 +256,32 @@
   (swap! state/state update-in [:players] dissoc player))
 
 (defn draw
-  [me? camera {:keys [x y map width height] :as player}]
-  [:div
-   {:x (if me?
-         (condp = (:bound? camera)
-           :left x
-           :right (- x (:x camera))
-           (- (/ util/game-width 2) (/ width 2)))
-         (- x (:x camera)))
-    :y y
-    :width width
-    :height height}
-   (sprite player)])
+  [me? camera {:keys [x y map width height] :as player} debugging?]
+  (let [bounding-box (-> (get-in player [:character :name])
+                         characters
+                         :bounding-box)
+        x-offset (if me?
+                   (condp = (:bound? camera)
+                     :left x
+                     :right (- x (:x camera))
+                     (- (/ util/game-width 2) (/ width 2)))
+                   (- x (:x camera)))
+        y-offset y]
+    [[:div
+      {:x x-offset
+       :y y
+       :width width
+       :height height}
+      (sprite player)]
+     (if debugging?
+       [:fill {:color "rgba(255,0,0,0.5)"}
+        [:rect {:x (+ x-offset (:x bounding-box))
+                :y (if (= :crouch (:state player))
+                     (- (+ y height)
+                        (:crouch-height bounding-box))
+                     (+ y (:y bounding-box)))
+                :width (:width bounding-box)
+                :height (if (= :crouch (:state player))
+                          (:crouch-height bounding-box)
+                          (:height bounding-box))}]]
+       [])]))

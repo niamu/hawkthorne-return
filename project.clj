@@ -25,7 +25,6 @@
   :profiles {:uberjar {:aot :all
                        :uberjar-name "hawkthorne.jar"
                        :prep-tasks ["compile" ["cljsbuild" "once"]]}
-             :repl {:prep-tasks [["cljsbuild" "once"]]}
              :dev {:main hawkthorne.server-dev
                    :source-paths ["src" "dev"]
                    :dependencies [[figwheel-sidecar "0.5.13"]]

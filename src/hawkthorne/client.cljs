@@ -10,8 +10,6 @@
 
 (enable-console-print!)
 
-(tiled/load-maps)
-
 (defonce game (p/create-game util/game-width util/game-height "game"))
 
 (def main-screen
@@ -24,20 +22,26 @@
         (aset "mozImageSmoothingEnabled" false)))
     (on-hide [this])
     (on-render [this]
-      (when-let [{:keys [players me camera]}
+      (when-let [{:keys [debugging? players me camera]}
                  (and (not-empty (:players @state/state)) @state/state)]
         (p/render game
                   [[:tiled-map {:name (:map (players me))
                                 :x (:x camera)
                                 :y (:y camera)}]
-                   (mapv (fn [[i p]] (player/draw (= i me) camera p)) players)])
+                   (mapv (fn [[i p]] (player/draw (= i me) camera p debugging?))
+                         players)])
         (camera/move (players me)))
       (swap! state/state assoc :keys (p/get-pressed-keys game)))))
 
-(router/mount-route (.. js/window -location -pathname))
+(defn start
+  []
+  (tiled/load-maps)
+  (websocket/tick-start)
 
-(websocket/tick-start)
+  (router/mount-route (.. js/window -location -pathname))
 
-(doto game
-  (p/start)
-  (p/set-screen main-screen))
+  (doto game
+    (p/start)
+    (p/set-screen main-screen)))
+
+(start)
