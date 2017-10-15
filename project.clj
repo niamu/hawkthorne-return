@@ -9,7 +9,7 @@
                  [com.cognitect/transit-clj   "0.8.285"]
                  [com.cognitect/transit-cljs  "0.8.239"]
                  [org.omcljs/om               "1.0.0-beta1"]
-                 [play-cljs                   "0.10.2-SNAPSHOT"]
+                 [com.niamu/play-cljs         "0.10.2"]
                  [http-kit                    "2.2.0"]
                  [ring/ring-core              "1.4.0"]
                  [ring/ring-codec             "1.0.0"]

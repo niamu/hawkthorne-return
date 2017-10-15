@@ -153,7 +153,7 @@
    :width 48
    :height 48
    :character {:name :troy :costume :base}
-   :map "hallway"
+   :map "town"
    :keys-pressed #{}})
 
 (defn velocity-x
