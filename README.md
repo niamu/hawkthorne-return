@@ -1,3 +1,5 @@
+![Return to the Center of Hawkthorne](https://raw.githubusercontent.com/niamu/hawkthorne/master/resources/public/images/logo.png)
+
 # Return to the Center of Hawkthorne
 
 A multiplayer, 2D platformer which targets the browser and is based on
