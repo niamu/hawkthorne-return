@@ -10,7 +10,7 @@
 - spectating mode
   - spectate without the need for JavaScript by generating live video
 - client-side interpolation for smoother gameplay
-- FPS counter
+- ~~FPS counter~~
 - character warp-in animation
 - character chooser before game loads
 - investigate server player limits

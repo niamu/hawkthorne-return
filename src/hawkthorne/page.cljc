@@ -34,10 +34,10 @@
 (defui Game
   static om/IQuery
   (query [this]
-    [:current/character :game/debugging?])
+    [:current/character :game/debugging? :game/fps])
   Object
   (render [this]
-    (let [{:keys [current/character game/debugging?]} (om/props this)]
+    (let [{:keys [current/character game/debugging? game/fps]} (om/props this)]
       (-> [:div
            [:select
             {:value (str (name (:name character)) "/"
@@ -70,5 +70,8 @@
                      #?(:clj nil
                         :cljs (fn [e]
                                 (om/transact! this '[(game/debugging?)])))}]
-            [:span "Debugging"]]]
+            [:span "Debugging"]]
+           (when debugging?
+             [:label
+              [:span (str "Framerate: " fps)]])]
           util/dom))))

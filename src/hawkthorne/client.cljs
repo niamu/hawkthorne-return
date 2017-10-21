@@ -31,6 +31,7 @@
                    (mapv (fn [[i p]] (player/draw (= i me) camera p debugging?))
                          players)])
         (camera/move (players me)))
+      (swap! state/state assoc :fps (/ 1000 (p/get-delta-time game)))
       (swap! state/state assoc :keys (p/get-pressed-keys game)))))
 
 (defn start

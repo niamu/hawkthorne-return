@@ -50,6 +50,10 @@
   {:value (get @state :debugging? false)
    :remote true})
 
+(defmethod read :game/fps
+  [{:keys [state query]} key params]
+  {:value (int (get @state :fps 0))})
+
 (defmulti mutate om/dispatch)
 
 (defmethod mutate 'current/character
