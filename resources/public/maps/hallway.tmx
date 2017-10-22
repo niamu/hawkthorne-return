@@ -17,12 +17,12 @@
  </layer>
  <layer name="accents" width="100" height="14">
   <data encoding="base64" compression="gzip">
-   H4sIAAAAAAAAE+3QoREAMAgEQQoI/beLwUWAicruzJmXHwEAAMCvcrnxjr/hdjpgVsecJUzgFQAA
+   H4sIAAAAAAAAE+3RMQqAMAyG0RzA7s71/nfs0kFCoQgKQt6Df8kU+CIAAACoqm1uV9qZdte/eLCAVYM36PEvejxzzAF7AxkKoHPgFQAA
   </data>
  </layer>
  <layer name="collision" width="100" height="14">
   <data encoding="base64" compression="gzip">
-   H4sIAAAAAAAAE+3HsQ0AMAgEMXZjJLK/QskIX9jSFVcFAAAAADneNudbUZHlA9PUi7bgFQAA
+   H4sIAAAAAAAAE+3UsQkAIAwAwezmHE6h+6OlBBsrU9zBF4F0gUQAAADAXUv1VN6lDveoxT3ezN045vyL9DdqWQok783gFQAA
   </data>
  </layer>
  <objectgroup name="block">

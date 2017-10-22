@@ -153,7 +153,7 @@
    :width 48
    :height 48
    :character {:name :troy :costume :base}
-   :map "town"
+   :map "hallway"
    :keys-pressed #{}})
 
 (defn velocity-x
@@ -177,68 +177,83 @@
     util/max-y-velocity))
 
 (defn pressing?
-  [player-id key-name]
+  [keys-pressed key-name]
   (let [keys-pressed (reduce (fn [accl k] (conj accl (util/keymap k)))
-                             #{}
-                             (get-in @state/state
-                                     [:players player-id :keys-pressed]))]
+                             #{} keys-pressed)]
     (contains? keys-pressed key-name)))
 
 (defn prevent-move
-  [player-id]
-  (swap! state/state update-in [:players player-id]
-         (fn [{:keys [x y velocity state width height map] :as player}]
-           (let [[collision-x collision-y]
-                 (tiled/touching-tile? map
-                                       (tiled/collision-index (tiled/maps map))
-                                       x y width height)]
-             (assoc player
-                    :x (cond
-                         (neg? x) 0
-                         (> (+ x width) (tiled/width map))
-                         (- (tiled/width map) width)
-                         :else x)
-                    :y (if collision-y (- collision-y height) y)
-                    :on-ground? (boolean collision-y)
-                    :velocity {:x (cond
-                                    (neg? x) 0
-                                    (> (+ x width) (tiled/width map)) 0
-                                    :else (:x velocity))
-                               :y (cond
-                                    (or (not (boolean collision-y))
-                                        (pressing? player-id :space))
-                                    (:y velocity)
-                                    collision-y 0
-                                    :else (:y velocity))})))))
+  [{:keys [x y velocity state width height map keys-pressed] :as player}]
+  (let [bounding-box (-> (get-in player [:character :name])
+                         characters :bounding-box)
+        tile-map (tiled/maps map)
+        [collision-x collision-y]
+        (tiled/touching-tile? map
+                              (tiled/collision-index tile-map)
+                              (+ x (:x bounding-box))
+                              (if (= :crouch (:state player))
+                                (- (+ y height)
+                                   (:crouch-height bounding-box))
+                                (+ y (:y bounding-box)))
+                              (:width bounding-box)
+                              (if (= :crouch (:state player))
+                                (:crouch-height bounding-box)
+                                (:height bounding-box)))]
+    (assoc player
+           :x (cond
+                (neg? x) 0 ;; beginning of level
+                (> (+ x width) (tiled/width map)) ;; end of level
+                (- (tiled/width map) width)
+                :else x)
+           :y (cond (and collision-y (pos? (:y velocity)))
+                    (- collision-y height)
+                    (and collision-y
+                         (not (:on-ground? player))
+                         (neg? (:y velocity)))
+                    (+ collision-y (:tileheight tile-map))
+                    :else y)
+           :on-ground? (boolean collision-y)
+           :velocity {:x (cond
+                           (neg? x) 0 ;; beginning of level
+                           (> (+ x width) (tiled/width map)) 0 ;; end of level
+                           collision-x 0
+                           :else (:x velocity))
+                      :y (cond
+                           (or (and (not collision-y)
+                                    (and collision-y
+                                         (not= (- collision-y height) y)))
+                               (and (pressing? keys-pressed :space)
+                                    (neg? (:y velocity))))
+                           (:y velocity)
+                           collision-y 0
+                           :else (:y velocity))})))
 
 (defn move
-  [player-id]
-  (swap! state/state update-in [:players player-id]
-         (fn [{:keys [x y state direction on-ground? velocity] :as player}]
-           (assoc player
-                  :state (cond
-                           (not on-ground?) :jump
-                           (pressing? player-id :down) :crouch
-                           (or (pressing? player-id :left)
-                               (pressing? player-id :right)) :walk
-                           :else :idle)
-                  :direction (cond
-                               (pressing? player-id :right) :right
-                               (pressing? player-id :left) :left
-                               :else direction)
-                  :x (+ x (:x velocity))
-                  :y (+ y (:y velocity))
-                  :velocity
-                  {:x (velocity-x player
-                                  (or (and (pressing? player-id :down)
-                                           on-ground?)
-                                      (and (not (pressing? player-id :left))
-                                           (not (pressing? player-id :right)))))
-                   :y (if (and (pressing? player-id :space)
-                               on-ground?)
-                        (- (/ (:height player) 2.5))
-                        (velocity-y player))})))
-  (prevent-move player-id))
+  [{:keys [x y state direction on-ground? velocity keys-pressed] :as player}]
+  (-> (assoc player
+             :state (cond
+                      (not on-ground?) :jump
+                      (pressing? keys-pressed :down) :crouch
+                      (or (pressing? keys-pressed :left)
+                          (pressing? keys-pressed :right)) :walk
+                      :else :idle)
+             :direction (cond
+                          (pressing? keys-pressed :right) :right
+                          (pressing? keys-pressed :left) :left
+                          :else direction)
+             :x (+ x (:x velocity))
+             :y (+ y (:y velocity))
+             :velocity
+             {:x (velocity-x player
+                             (or (and (pressing? keys-pressed :down)
+                                      on-ground?)
+                                 (and (not (pressing? keys-pressed :left))
+                                      (not (pressing? keys-pressed :right)))))
+              :y (if (and (pressing? keys-pressed :space)
+                          on-ground?)
+                   (- (/ (:height player) 2.5))
+                   (velocity-y player))})
+      prevent-move))
 
 (defn join
   [player]

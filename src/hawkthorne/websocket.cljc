@@ -88,8 +88,12 @@
    (defn send-world-state
      "Send the current state of all players to each client"
      []
-     (doseq [[player-id _] (:players @state/state)]
-       (player/move player-id))
+     (swap! state/state update-in [:players]
+            (fn [players]
+              (reduce (fn [accl [player-id player]]
+                        (assoc accl player-id (player/move player)))
+                      {}
+                      players)))
      (doseq [[channel player] (:channels @state/state)]
        (send channel (pr-str {:players
                               (->> (:players @state/state)
