@@ -4,7 +4,8 @@
             [hawkthorne.routes :as routes]
             [hawkthorne.state :as state]
             [hawkthorne.util :as util]
-            #?(:clj [org.httpkit.server :as http])
+            #?(:clj [org.httpkit.server :as http]
+               :cljs [hawkthorne.game :as game])
             [domkm.silk :as silk]
             [#?(:clj clojure.core.async :cljs cljs.core.async) :as async
              :refer [#?(:clj go-loop)]]
@@ -17,7 +18,8 @@
     :keys (swap! state/state assoc-in
                  [:players (:uuid m) :keys-pressed] (:keys m))
     :players (swap! state/state assoc :players (:players m))
-    :uuid (swap! state/state assoc :me (:uuid m))
+    :uuid (do (swap! state/state assoc :me (:uuid m))
+              #?(:cljs (game/start)))
     :no-match))
 
 #?(:cljs
