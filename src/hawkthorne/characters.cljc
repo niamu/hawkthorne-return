@@ -20,6 +20,9 @@
             [hawkthorne.characters.vicedean :as vicedean]
             [hawkthorne.characters.vicki :as vicki]))
 
+(def greendale-seven
+  [:abed :annie :britta :jeff :pierce :shirley :troy])
+
 (def characters
   {:abed abed/character
    :annie annie/character

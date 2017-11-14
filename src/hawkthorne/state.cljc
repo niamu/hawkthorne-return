@@ -1,7 +1,9 @@
 (ns hawkthorne.state
   "Utilities for state parsing and sync with server"
   (:refer-clojure :exclude [read])
-  (:require [cognitect.transit :as t]
+  (:require [hawkthorne.characters :as characters]
+            [clojure.set :refer [difference]]
+            [cognitect.transit :as t]
             [om.next :as om]
             [#?(:clj clojure.edn :cljs cljs.reader) :as edn])
   #?(:cljs (:import [goog.net XhrIo])))
@@ -40,11 +42,6 @@
   [{:keys [state query]} key params]
   {:value "default"})
 
-(defmethod read :current/character
-  [{:keys [state query]} key params]
-  {:value (get-in @state [:players (:me @state) :character]
-                  {:name :troy :costume :base})})
-
 (defmethod read :game/debugging?
   [{:keys [state query]} key params]
   {:value (get @state :debugging? false)
@@ -54,23 +51,38 @@
   [{:keys [state query]} key params]
   {:value (int (get @state :fps 0))})
 
+(defn heroes-available
+  []
+  (vec (difference (set characters/greendale-seven)
+                   (set (map (fn [[_ player]]
+                               (get-in player [:character :name]))
+                             (:players @state))))))
+
+(defmethod read :heroes/available
+  [{:keys [state query]} key params]
+  {:value (heroes-available)})
+
+(defmethod read :heroes/current
+  [{:keys [state query]} key params]
+  {:value (get-in @state [:players (:me @state) :character :name])})
+
 (defmulti mutate om/dispatch)
 
-(defmethod mutate 'current/character
-  [env key {:keys [character costume me]}]
-  {:remote true
-   :action (fn []
-             (swap! state update-in [:players me]
-                    assoc :character {:name character
-                                      :costume costume})
-             #?(:clj (:players @state)))})
-
 (defmethod mutate 'game/debugging?
-  [{:keys [state]} key _]
+  [_ _ _]
   {:remote true
    :action (fn []
              (swap! state assoc :debugging? (not (:debugging? @state)))
              #?(:clj (:debugging? @state)))})
+
+(defmethod mutate 'heroes/change
+  [env _ {:keys [me selected]}]
+  {:remote true
+   :action (fn []
+             (swap! state assoc-in
+                    [:players me :character :name]
+                    selected)
+             #?(:clj {:hero selected}))})
 
 (def parser
   (om/parser {:read read

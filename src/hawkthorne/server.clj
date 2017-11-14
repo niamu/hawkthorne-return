@@ -5,8 +5,8 @@
             [hawkthorne.router :as router]
             [hawkthorne.websocket :as websocket]
             [org.httpkit.server :as http]
-            [ring.middleware.not-modified :as not-modified]
-            [ring.middleware.defaults :as defaults]))
+            [ring.middleware.defaults :as defaults]
+            [ring.middleware.not-modified :as not-modified]))
 
 (defonce server (atom nil))
 

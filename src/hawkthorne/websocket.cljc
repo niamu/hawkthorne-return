@@ -15,8 +15,10 @@
 (defn receive
   [m]
   (condp #(contains? %2 %1) m
-    :keys (swap! state/state assoc-in
-                 [:players (:uuid m) :keys-pressed] (:keys m))
+    :keys (when-let [p (get-in @state/state [:players (:uuid m)])]
+            (when (not= :lobby (:map p))
+              (swap! state/state assoc-in
+                     [:players (:uuid m) :keys-pressed] (:keys m))))
     :players (swap! state/state assoc :players (:players m))
     :uuid (do (swap! state/state assoc :me (:uuid m))
               #?(:cljs (game/start)))
@@ -64,9 +66,11 @@
 #?(:clj
    (defn open
      [channel player]
-     (swap! state/state assoc-in [:channels channel] player)
-     (player/join player)
-     (http/send! channel (pr-str {:uuid player}))))
+     (if player
+       (do (swap! state/state assoc-in [:channels channel] player)
+           (player/join player)
+           (http/send! channel (pr-str {:uuid player})))
+       (http/close channel))))
 
 #?(:clj
    (defn on-close

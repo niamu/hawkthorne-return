@@ -1,5 +1,5 @@
 (ns hawkthorne.player
-  (:require [hawkthorne.characters :refer [characters]]
+  (:require [hawkthorne.characters :as characters]
             [hawkthorne.state :as state]
             [hawkthorne.style :as style]
             [hawkthorne.tiled :as tiled]
@@ -123,7 +123,8 @@
 (defn sprite
   [{:keys [direction state width height character] :as player}]
   (let [sheet (merge sheet
-                     (get-in characters [(:name character) :animations] {}))
+                     (get-in characters/characters
+                             [(:name character) :animations] {}))
         [cycle sprites duration] (get-in sheet [state direction] (sheet state))
         image-path (fn [character]
                      (str "/images/characters/"
@@ -152,8 +153,8 @@
    :state :idle
    :width 48
    :height 48
-   :character {:name :troy :costume :base}
-   :map "town"
+   :character :spectator
+   :map "lobby"
    :keys-pressed #{}})
 
 (defn velocity-x
@@ -213,43 +214,45 @@
 
 (defn move
   [player-id]
-  (swap! state/state update-in [:players player-id]
-         (fn [{:keys [x y state direction on-ground? velocity] :as player}]
-           (assoc player
-                  :state (cond
-                           (not on-ground?) :jump
-                           (pressing? player-id :down) :crouch
-                           (or (pressing? player-id :left)
-                               (pressing? player-id :right)) :walk
-                           :else :idle)
-                  :direction (cond
-                               (pressing? player-id :right) :right
-                               (pressing? player-id :left) :left
-                               :else direction)
-                  :x (+ x (:x velocity))
-                  :y (+ y (:y velocity))
-                  :velocity
-                  {:x (velocity-x player
-                                  (or (and (pressing? player-id :down)
-                                           on-ground?)
-                                      (and (not (pressing? player-id :left))
-                                           (not (pressing? player-id :right)))))
-                   :y (if (and (pressing? player-id :space)
-                               on-ground?)
-                        (- (/ (:height player) 2.5))
-                        (velocity-y player))})))
-  (prevent-move player-id))
+  (when-not (= "lobby" (get-in @state/state [:players player-id :map]))
+    (swap! state/state update-in [:players player-id]
+           (fn [{:keys [x y state direction on-ground? velocity] :as player}]
+             (assoc player
+                    :state (cond
+                             (not on-ground?) :jump
+                             (pressing? player-id :down) :crouch
+                             (or (pressing? player-id :left)
+                                 (pressing? player-id :right)) :walk
+                             :else :idle)
+                    :direction (cond
+                                 (pressing? player-id :right) :right
+                                 (pressing? player-id :left) :left
+                                 :else direction)
+                    :x (+ x (:x velocity))
+                    :y (+ y (:y velocity))
+                    :velocity
+                    {:x (velocity-x player
+                                    (or (and (pressing? player-id :down)
+                                             on-ground?)
+                                        (and
+                                         (not (pressing? player-id :left))
+                                         (not (pressing? player-id :right)))))
+                     :y (if (and (pressing? player-id :space)
+                                 on-ground?)
+                          (- (/ (:height player) 2.5))
+                          (velocity-y player))})))
+    (prevent-move player-id)))
 
 (defn join
   [player]
-  (let [rand-character (rand-nth (keys characters))
-        rand-costume (rand-nth (keys (:costumes (characters rand-character))))]
-    (swap! state/state assoc-in
-           [:players player]
-           (assoc init-state
-                  :x (* (:width init-state) (count (:players @state/state)))
-                  :character {:name rand-character
-                              :costume rand-costume}))))
+  (swap! state/state assoc-in
+         [:players player]
+         (assoc init-state
+                :x (* (:width init-state) (count (:players @state/state)))
+                :character {:name (if (not-empty (state/heroes-available))
+                                    (rand-nth (state/heroes-available))
+                                    :spectator)
+                            :costume :base})))
 
 (defn leave
   [player]
@@ -258,7 +261,7 @@
 (defn draw
   [me? camera {:keys [x y map width height] :as player} debugging?]
   (let [bounding-box (-> (get-in player [:character :name])
-                         characters
+                         characters/characters
                          :bounding-box)
         x-offset (if me?
                    (condp = (:bound? camera)

@@ -11,11 +11,11 @@
 
 (defn serve
   "Serve pages in a map as expected by Ring"
-  [{:keys [status headers body]}]
+  [{:keys [status headers body]} route]
   #?(:clj (fn [request]
             {:status (or status 200)
              :headers (or headers {"Content-Type" "text/html"})
-             :body (page/wrap (page/react-root body))})
+             :body (page/wrap (page/react-root body) route)})
      :cljs (page/react-root body)))
 
 (defmulti response identity)
@@ -46,13 +46,21 @@
         :headers {"Content-Type" "text/css"}
         :body (style/render)})))
 
+(defmethod response :lobby
+  [route]
+  (serve {:body page/Lobby} route))
+
 (defmethod response :game
   [route]
-  (serve {:body page/Game}))
+  #?(:clj (fn [request]
+            {:status 200
+             :headers {"Content-Type" "text/html"}
+             :body (page/wrap (page/react-root page/Game) route)})
+     :cljs (page/react-root page/Game)))
 
 (defmethod response :default
   [route]
-  (serve {:body page/Game}))
+  (serve {:body page/Game} route))
 
 (defn route->response
   [matched-route]

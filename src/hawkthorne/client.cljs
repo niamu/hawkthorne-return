@@ -7,8 +7,8 @@
 
 (defn -main
   []
-  (tiled/load-maps)
   (websocket/tick-start)
+  (tiled/load-maps)
   (router/mount-route (.. js/window -location -pathname)))
 
 (-main)
