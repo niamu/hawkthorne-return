@@ -26,9 +26,9 @@
        [:meta {:name "viewport" :content "width=device-width,initial-scale=1"}]
        (h/include-css "/css/screen.css")]
       [:body
-       [:div#app (render-to-str react-root)]
        [:div#game
         [:noscript "JavaScript is necessary to play this game"]]
+       [:div#app (render-to-str react-root)]
        (h/include-js "/js/hawkthorne.js")])))
 
 (defui Game
@@ -38,7 +38,7 @@
   Object
   (render [this]
     (let [{:keys [current/character game/debugging? game/fps]} (om/props this)]
-      (-> [:div
+      (-> [:div.hud
            [:select
             {:value (str (name (:name character)) "/"
                          (name (:costume character)))
@@ -68,8 +68,7 @@
                      :checked debugging?
                      :onChange
                      #?(:clj nil
-                        :cljs (fn [e]
-                                (om/transact! this '[(game/debugging?)])))}]
+                        :cljs #(om/transact! this '[(game/debugging?)]))}]
             [:span "Debugging"]]
            (when debugging?
              [:label

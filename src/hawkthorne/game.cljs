@@ -7,6 +7,17 @@
 
 (defonce game (p/create-game util/game-width util/game-height "game"))
 
+(defn background-color
+  [map-name]
+  (if-let [properties (and (get-in (js->clj js/TileMaps)
+                                   [map-name "properties" "red"])
+                           (get-in (js->clj js/TileMaps)
+                                   [map-name "properties"]))]
+    [(properties "red")
+     (properties "green")
+     (properties "blue")]
+    [0 0 0]))
+
 (def main-screen
   (reify p/Screen
     (on-show [this]
@@ -20,7 +31,11 @@
       (when-let [{:keys [debugging? players me camera]}
                  (and (not-empty (:players @state/state)) @state/state)]
         (p/render game
-                  [[:tiled-map {:name (:map (players me))
+                  [[:fill {:colors (background-color (:map (players me)))}
+                    [:rect {:x -1 :y -1
+                            :width (inc util/game-width)
+                            :height (inc util/game-height)}]]
+                   [:tiled-map {:name (:map (players me))
                                 :x (:x camera)
                                 :y (:y camera)}]
                    (mapv (fn [[i p]] (player/draw (= i me) camera p debugging?))
@@ -31,7 +46,6 @@
 
 (defn start
   []
-  (prn @state/state)
   (doto game
     (p/start)
     (p/set-screen main-screen)))
