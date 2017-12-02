@@ -38,19 +38,19 @@
   (render [this]
     (let [{:keys [character checked? costumes disabled?]} (om/props this)]
       (-> [:div.hero-container
-           [:input {:type "radio"
-                    :disabled (and disabled? (not checked?))
-                    :checked checked?
-                    :id (str "hero_" (name character))
-                    :name "hero"
-                    :onChange
-                    #?(:cljs (fn [e]
-                               (.preventDefault e)
-                               (om/transact! this
-                                             `[(heroes/change
-                                                {:me ~(:me @state/state)
-                                                 :selected ~character})]))
-                       :clj nil)}]
+           (dom/input #js {:type "radio"
+                           :disabled (and disabled? (not checked?))
+                           :checked checked?
+                           :value (name character)
+                           :id (str "hero_" (name character))
+                           :name "hero"
+                           :onChange
+                           (fn [e]
+                             (.preventDefault e)
+                             (om/transact! this
+                                           `[(heroes/change
+                                              {:me ~(:me @state/state)
+                                               :selected ~character})]))})
            [:div.hero
             [:label.image
              {:htmlFor (str "hero_" (name character))

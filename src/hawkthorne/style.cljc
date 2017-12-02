@@ -56,8 +56,9 @@
           :width (units/px 48)
           :height (units/px 48)
           :transform (scale s)
-          :transform-origin [[:top :left]]
-          :image-rendering :pixelated}]]
+          :transform-origin [[:top :left]]}
+         {:image-rendering :pixelated}
+         {:image-rendering :-moz-crisp-edges}]]
        [(selectors/+ (selectors/input (selectors/attr :disabled))
                      (selectors/> :div.hero :.image))
         {:filter (saturate 0)}]
