@@ -1,14 +1,21 @@
 (ns hawkthorne.client
-  (:require [hawkthorne.router :as router]
-            [hawkthorne.tiled :as tiled]
-            [hawkthorne.websocket :as websocket]))
+  (:require [cljsjs.phaser-ce]
+            [hawkthorne.util :as util]))
 
 (enable-console-print!)
 
-(defn -main
-  []
-  (websocket/tick-start)
-  (tiled/load-maps)
-  (router/mount-route (.. js/window -location -pathname)))
+(declare game)
 
-(-main)
+(defn preload
+  []
+  (prn :preload))
+
+(defn create
+  []
+  (prn :create))
+
+(def game
+  (new (.-Game js/Phaser) util/game-width util/game-height
+       (.-AUTO js/Phaser) "app"
+       (clj->js {:preload preload
+                 :create create})))

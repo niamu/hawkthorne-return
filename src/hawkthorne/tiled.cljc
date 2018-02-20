@@ -3,6 +3,17 @@
   #?(:cljs (:require-macros
             [hawkthorne.tiled :refer [maps*]])))
 
+#_(defn background-color
+    [map-name]
+    (if-let [properties (and (get-in (js->clj js/TileMaps)
+                                     [map-name "properties" "red"])
+                             (get-in (js->clj js/TileMaps)
+                                     [map-name "properties"]))]
+      [(properties "red")
+       (properties "green")
+       (properties "blue")]
+      [0 0 0]))
+
 (defn collision-index
   [map-data]
   (->> (:layers map-data)
