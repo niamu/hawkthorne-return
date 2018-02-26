@@ -1,6 +1,5 @@
 (ns hawkthorne.atlas
-  (:require [hawkthorne.characters :refer [characters]]
-            [clojure.data.json :as json]))
+  (:require [hawkthorne.characters :refer [characters]]))
 
 (def animations
   {:acquire          {:left   [:once [[7 3]] 1]
@@ -118,47 +117,48 @@
                       :right  [:loop [[2 10] [3 10]] 0.16]}})
 
 (defn frame
-  [prefix [loop coords interval]]
-  (map-indexed (fn [idx [x-coord y-coord]]
-                 (let [s 48]
-                   {:filename (keyword (str (name prefix) "-" (inc idx)))
-                    :frame {:x (* (dec x-coord) s) :y (* (dec y-coord) s)
-                            :w s :h s}
-                    :rotated false
-                    :trimmed false
-                    :spriteSourceSize {:x 0 :y 0 :w s :h s}
-                    :sourceSize {:w s :h s}}))
-               coords))
+  [idx filename suffix data x-coord y-coord]
+  (let [size 48]
+    {:filename (str (name filename) suffix "-" idx)
+     :frame {:x (* (dec x-coord) size)
+             :y (* (dec y-coord) size)
+             :w size
+             :h size}
+     :rotated false
+     :trimmed false
+     :spriteSourceSize {:x 0 :y 0
+                        :w size :h size}
+     :sourceSize {:w size :h size}}))
 
-(let [cmap (reduce (fn [accl [k v]]
-                     (assoc accl k (merge animations (:animations v))))
-                   {}
-                   characters)]
-  (->> (reduce (fn [final [character v]]
-                 (assoc final character
-                        (->> (reduce (fn [accl [animation m]]
-                                       (if (:left m)
-                                         (assoc accl
-                                                (keyword (str (name animation)
-                                                              "-left"))
-                                                (:left m)
-                                                (keyword (str (name animation)
-                                                              "-right"))
-                                                (:right m))
-                                         (assoc accl animation m)))
-                                     {}
-                                     v)
-                             (reduce (fn [accl [animation m]]
-                                       (apply conj accl (frame animation m)))
-                                     []))))
-               {}
-               cmap)
-       (map (fn [[character frames]]
-              (spit (str "resources/public/" (name character) ".json")
-                    (json/write-str {:frames (sort-by :filename frames)
-                                     :meta {:app "hawkthorne-return",
-                                            :version "1.0"
-                                            :image (str (name character) ".png")
-                                            :format "RGBA8888"
-                                            :size {:w 576 :h 768}
-                                            :scale "1"}}))))))
+(defn frames
+  [anims]
+  (reduce (fn [accl [filename data]]
+            (if (:left data)
+              (apply conj accl
+                     (concat
+                      (map-indexed (fn [idx [x-coord y-coord]]
+                                     (frame idx filename "-left"
+                                            (:left data) x-coord y-coord))
+                                   (nth (:left data) 1))
+                      (map-indexed (fn [idx [x-coord y-coord]]
+                                     (frame idx filename "-right"
+                                            (:right data) x-coord y-coord))
+                                   (nth (:right data) 1))))
+              (apply conj accl
+                     (map-indexed (fn [idx [x-coord y-coord]]
+                                    (frame idx filename ""
+                                           data x-coord y-coord))
+                                  (nth data 1)))))
+          [] anims))
+
+(defn character->atlas
+  [character]
+  {:frames (frames (merge animations
+                          (get-in characters
+                                  [character :animations])))
+   :meta {:app "hawkthorne-return",
+          :version "1.0"
+          :image (str (name character) ".png")
+          :format "RGBA8888"
+          :size {:w 576 :h 768}
+          :scale 1}})
