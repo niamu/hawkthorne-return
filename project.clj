@@ -8,7 +8,7 @@
                  [com.domkm/silk              "0.1.2"]
                  [cljsjs/phaser-ce            "2.8.2-0"]
                  [garden                      "1.3.2"]
-                 [tmx2edn                     "0.1.0"]]
+                 [tmx2edn                     "0.1.1"]]
   :main hawkthorne.client
   :profiles {:uberjar {:aot :all
                        :uberjar-name "hawkthorne.jar"
@@ -20,10 +20,7 @@
                    :plugins [[lein-cljsbuild "1.1.7"]]}}
   :clean-targets ^{:protect false} ["target"
                                     "figwheel_server.log"
-                                    "resources/public/js"
-                                    "node_modules"
-                                    "package.json"
-                                    "package-lock.json"]
+                                    "resources/public/js"]
   :cljsbuild {:builds
               [{:id "prod"
                 :source-paths ["src"]
@@ -32,7 +29,8 @@
                            :output-to "resources/public/js/hawkthorne.js"
                            :output-dir "resources/public/js/out"
                            :optimizations :advanced
-                           :parallel-build true}}
+                           :parallel-build true
+                           :source-map "/js/source/hawkthorne.js.map"}}
                {:id "dev"
                 :figwheel true
                 :source-paths ["src" "dev"]

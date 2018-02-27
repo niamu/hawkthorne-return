@@ -1,4 +1,5 @@
-(ns hawkthorne.util)
+(ns hawkthorne.util
+  (:require [clojure.string :as string]))
 
 (def game-width 620)
 (def game-height 336)
@@ -11,9 +12,8 @@
 (def max-x-velocity 9)
 (def max-y-velocity 20)
 
-(def keymap
-  {32 :space
-   37 :left
-   38 :up
-   39 :right
-   40 :down})
+#?(:cljs
+   (defn arraybuffer->str
+     [buf]
+     (string/join (map #(js/String.fromCharCode %)
+                       (seq (.from js/Array (js/Int8Array. buf)))))))
