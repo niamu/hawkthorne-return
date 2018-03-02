@@ -32,28 +32,26 @@
 
 (defn create-layers!
   [game tilemap level]
-  (doall (map (fn [layer]
-                (let [l (.createLayer level (:name layer))]
-                  (when (= "collision" (:name layer))
-                    (.resizeWorld l)
-                    (.setCollision level
-                                   (->> (:data layer)
-                                        (map-indexed (fn [idx d] [idx d]))
-                                        (filter (fn [m]
-                                                  (not (zero? (second m)))))
-                                        keys)
-                                   true (:name layer))
-                    (-> game .-physics .-p2 (.convertTilemap level l
-                                                             true true)))))
-              (filter #(= :tilelayer (:type %))
-                      (:layers (.. game -cache (getBinary tilemap)))))))
+  (let [map-edn (.. game -cache (getBinary tilemap))]
+    (.. game -world (setBounds 0 0
+                               (* (:width map-edn) (:tilewidth map-edn))
+                               (* (:height map-edn) (:tileheight map-edn))))
+    (doall (map (fn [layer]
+                  (let [l (.createLayer level (:name layer))]
+                    (when-not (true? (:visible layer))
+                      (aset l "visible" false))
+                    (when (= "collision" (:name layer))
+                      (.setCollision level (->> (set (:data layer))
+                                                (remove zero?)
+                                                clj->js) true l))))
+                (filter #(= :tilelayer (:type %))
+                        (:layers map-edn))))))
 
 (defn create-tilemap!
   [game tilemap]
   (let [level (-> game .-add (.tilemap tilemap))]
     (create-tileset-images! game tilemap level)
-    (create-layers! game tilemap level)
-    (.. game -physics -p2 (setBoundsToWorld true true true true true))))
+    (create-layers! game tilemap level)))
 
 (defn build-state
   "Pass game object to each state function"

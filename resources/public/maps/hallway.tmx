@@ -12,17 +12,17 @@
  </tileset>
  <layer name="background" width="100" height="14">
   <data encoding="base64" compression="gzip">
-   H4sIAAAAAAAAE+3QyQqAMAwE0GJdL+4HBZf//0tzaKEWoR5sjDKHRyCBGUiqlEoBAD5AA8AtU4TbXzskdALAWUHKgEpQLndHzM6M5N6uJ0PA+FIudwdXZ21mSzpvt5ItYA/ku7n6wVzujpid9t8Lmc10Xe0gHvvvBkRJQJQDKru/J+AVAAA=
+   H4sIAAAAAAAAA+3QyQqAMAwE0GJdL+4HBZf//0tzaKEWoR5sjDKHRyCBGUiqlEoBAD5AA8AtU4TbXzskdALAWUHKgEpQLndHzM6M5N6uJ0PA+FIudwdXZ21mSzpvt5ItYA/ku7n6wVzujpid9t8Lmc10Xe0gHvvvBkRJQJQDKru/J+AVAAA=
   </data>
  </layer>
  <layer name="accents" width="100" height="14">
   <data encoding="base64" compression="gzip">
-   H4sIAAAAAAAAE+3QoREAMAgEQQoI/beLwUWAicruzJmXHwEAAMCvcrnxjr/hdjpgVsecJUzgFQAA
+   H4sIAAAAAAAAA+3QoREAMAgEQQoI/beLwUWAicruzJmXHwEAAMCvcrnxjr/hdjpgVsecJUzgFQAA
   </data>
  </layer>
- <layer name="collision" width="100" height="14">
+ <layer name="collision" width="100" height="14" visible="0">
   <data encoding="base64" compression="gzip">
-   H4sIAAAAAAAAE+3HsQ0AMAgEMXZjJLK/QskIX9jSFVcFAAAAADneNudbUZHlA9PUi7bgFQAA
+   H4sIAAAAAAAAA+3HsQ0AMAgEMXZjJLK/QskIX9jSFVcFAAAAADneNudbUZHlA9PUi7bgFQAA
   </data>
  </layer>
  <objectgroup name="block">
