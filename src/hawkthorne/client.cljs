@@ -11,19 +11,26 @@
   (-> game .-physics .-arcade
       (.collide collision-layer player
                 (fn [c o])))
-  (aset (-> player .-body .-velocity) "x" 0)
+  (prn (aget player "facing"))
   (when (and (.-isDown (-> game .-input .-keyboard
                            (.addKey (-> js/Phaser .-KeyCode .-SPACEBAR))))
              (.. player -body (onFloor)))
     (aset (-> player .-body .-velocity) "y" -300))
   (when (-> cursors .-right .-isDown)
-    (aset (-> player .-body .-velocity) "x" 350)
+    (aset player "facing" "right")
+    (aset (-> player .-body .-velocity) "x"
+          (+ (aget (-> player .-body .-velocity) "x")
+             (/ (* (-> game .-time .-elapsedMS) (-> game .-time .-fps)) 100)))
     (.. player -animations (play "walk-right" 10 true)))
   (when (-> cursors .-left .-isDown)
+    (aset player "facing" "left")
     (aset (-> player .-body .-velocity) "x" -350)
     (.. player -animations (play "walk-left" 10 true)))
   (when (and (-> cursors .-left .-isUp)
              (-> cursors .-right .-isUp))
+    (aset (-> player .-body .-velocity) "x"
+          (- (aget (-> player .-body .-velocity) "x")
+             (/ (* (-> game .-time .-elapsedMS) (-> game .-time .-fps)) 100)))
     (.. player -animations (play "idle-right"))))
 
 (defn preload
@@ -45,6 +52,7 @@
                                          (= "collision"
                                             (aget o "layer" "name")))
                                        (-> game .-world .-children)))]
+    (aset player "facing" "right")
     (aset player "update"
           (partial #'player-update game player
                    (-> game .-input .-keyboard (.createCursorKeys))
@@ -75,8 +83,8 @@
 
 (defn render
   [game]
-  (.. game -debug (text (or (str "FPS: " (-> game .-time .-fps))
-                            "FPS: --") 40 40 "#ff0000")))
+  (.. game -debug (text (str "FPS: " (or (-> game .-time .-fps) "--"))
+                        40 40 "#ff0000")))
 
 (aset js/window "onload"
       (fn []
