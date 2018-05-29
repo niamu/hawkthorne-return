@@ -1,37 +1,11 @@
 (ns hawkthorne.client
   (:require [cljsjs.phaser-ce]
             [hawkthorne.atlas :refer [character->atlas]]
+            [hawkthorne.player :as player]
             [hawkthorne.game :as game]
             [hawkthorne.util :as util]))
 
 (enable-console-print!)
-
-(defn player-update
-  [game player cursors collision-layer]
-  (-> game .-physics .-arcade
-      (.collide collision-layer player
-                (fn [c o])))
-  (prn (aget player "facing"))
-  (when (and (.-isDown (-> game .-input .-keyboard
-                           (.addKey (-> js/Phaser .-KeyCode .-SPACEBAR))))
-             (.. player -body (onFloor)))
-    (aset (-> player .-body .-velocity) "y" -300))
-  (when (-> cursors .-right .-isDown)
-    (aset player "facing" "right")
-    (aset (-> player .-body .-velocity) "x"
-          (+ (aget (-> player .-body .-velocity) "x")
-             (/ (* (-> game .-time .-elapsedMS) (-> game .-time .-fps)) 100)))
-    (.. player -animations (play "walk-right" 10 true)))
-  (when (-> cursors .-left .-isDown)
-    (aset player "facing" "left")
-    (aset (-> player .-body .-velocity) "x" -350)
-    (.. player -animations (play "walk-left" 10 true)))
-  (when (and (-> cursors .-left .-isUp)
-             (-> cursors .-right .-isUp))
-    (aset (-> player .-body .-velocity) "x"
-          (- (aget (-> player .-body .-velocity) "x")
-             (/ (* (-> game .-time .-elapsedMS) (-> game .-time .-fps)) 100)))
-    (.. player -animations (play "idle-right"))))
 
 (defn preload
   [game]
@@ -54,21 +28,10 @@
                                        (-> game .-world .-children)))]
     (aset player "facing" "right")
     (aset player "update"
-          (partial #'player-update game player
+          (partial #'player/update! game player
                    (-> game .-input .-keyboard (.createCursorKeys))
                    collision-layer))
-    (.. player -animations
-        (add "idle-right"
-             (.. js/Phaser -Animation
-                 (generateFrameNames "idle-right-" 0 0))))
-    (.. player -animations
-        (add "walk-left"
-             (.. js/Phaser -Animation
-                 (generateFrameNames "walk-left-" 0 3))))
-    (.. player -animations
-        (add "walk-right"
-             (.. js/Phaser -Animation
-                 (generateFrameNames "walk-right-" 0 3))))
+    (player/add-animations! player)
     (.. game -physics (enable player))
     (.. game -camera (follow player))
     (aset (-> game .-physics .-arcade .-gravity) "y" 500)
