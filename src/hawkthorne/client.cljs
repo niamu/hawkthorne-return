@@ -13,14 +13,14 @@
   (.. game -load (atlas :abed
                         "images/characters/abed/base.png"
                         nil (clj->js (character->atlas :abed))))
-  (game/preload-tilemap! game "maps/hallway.tmx")
+  (game/preload-tilemap! game "maps/forest.tmx")
   (prn :preload))
 
 (defn create
   [game]
   (.. game -physics (startSystem (-> js/Phaser .-Physics .-ARCADE)))
   (aset game "stage" "smoothed" false)
-  (game/create-tilemap! game "maps/hallway.tmx")
+  (game/create-tilemap! game "maps/forest.tmx")
   (let [player (.. game -add (sprite 0 0 :abed))
         collision-layer (first (filter (fn [o]
                                          (= "collision"
@@ -37,7 +37,7 @@
     (aset (-> game .-physics .-arcade .-gravity) "y" 500)
     (aset (-> player .-body .-bounce) "y" 0.2)
     (aset (-> player .-body) "damping" 1)
-    (aset (-> player .-body) "collideWorldBounds" true))
+    #_(aset (-> player .-body) "collideWorldBounds" true))
   (prn :create))
 
 (defn update-loop

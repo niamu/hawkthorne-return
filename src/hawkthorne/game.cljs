@@ -17,6 +17,8 @@
                          (fn [k data]
                            (let [map-edn (->> (util/arraybuffer->str data)
                                               tmx->edn)]
+                             (aset game "stage" "backgroundColor"
+                                   (:backgroundcolor map-edn))
                              (preload-tilesets! game (:tilesets map-edn))
                              (.. game -load (tilemap tilemap nil
                                                      (clj->js map-edn)
