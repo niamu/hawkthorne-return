@@ -1,16 +1,16 @@
 (defproject hawkthorne "0.1.0"
   :description "Journey to the Center of Hawkthorne"
   :url "http://projecthawkthorne.com"
-  :dependencies [[org.clojure/clojure         "1.8.0"]
-                 [org.clojure/clojurescript   "1.9.854"]
+  :dependencies [[org.clojure/clojure         "1.9.0"]
+                 [org.clojure/clojurescript   "1.10.439"]
                  [org.clojure/core.async      "0.3.443"
                   :exclusions [org.clojure/tools.reader]]
                  [org.clojure/data.json       "0.2.6"]
-                 [com.cognitect/transit-clj   "0.8.285"]
-                 [com.cognitect/transit-cljs  "0.8.239"]
-                 [org.omcljs/om               "1.0.0-beta1"]
-                 [com.niamu/play-cljs         "0.10.2"]
-                 [http-kit                    "2.2.0"]
+                 [com.cognitect/transit-clj   "0.8.313"]
+                 [com.cognitect/transit-cljs  "0.8.256"]
+                 [org.omcljs/om               "1.0.0-beta4"]
+                 [play-cljs                   "1.2.0"]
+                 [http-kit                    "2.3.0"]
                  [ring/ring-core              "1.4.0"]
                  [ring/ring-codec             "1.0.0"]
                  [ring/ring-defaults          "0.2.1"]
@@ -27,7 +27,7 @@
                        :prep-tasks ["compile" ["cljsbuild" "once"]]}
              :dev {:main hawkthorne.server-dev
                    :source-paths ["src" "dev"]
-                   :dependencies [[figwheel-sidecar "0.5.13"]]
+                   :dependencies [[figwheel-sidecar "0.5.17"]]
                    :figwheel {:server-ip "0.0.0.0"}
                    :plugins [[lein-cljsbuild "1.1.7"]]}}
   :clean-targets ^{:protect false} ["target"
